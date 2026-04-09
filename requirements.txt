@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+numpy
+pandas
+websockets
+fyers-apiv3
+python-multipart
