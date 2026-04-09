@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Quant TBT Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root { --steel-blue: #4682B4; --off-white: #F8F9FA; --up: #22C55E; --down: #EF4444; }
+        body { background-color: var(--off-white); font-family: 'Inter', sans-serif; color: #334155; }
+        .header { background-color: var(--steel-blue); }
+        .depth-cell { transition: all 0.2s; border-bottom: 1px solid #f1f5f9; }
+        .signal-card { border-left: 5px solid var(--steel-blue); background: white; }
+    </style>
+</head>
+<body class="min-h-screen">
+    <header class="header p-4 shadow-md text-white flex justify-between items-center">
+        <h1 class="text-xl font-bold tracking-tight">TBT 50-LEVEL QUANT RADAR</h1>
+        <div id="status" class="text-xs opacity-80 font-mono">WS DISCONNECTED</div>
+    </header>
+
+    <main class="p-6 grid grid-cols-12 gap-6">
+        <div class="col-span-12 lg:col-span-4 bg-white rounded-lg shadow-sm border border-slate-200 p-4">
+            <h2 class="font-bold mb-4 text-center border-b pb-2" style="color: var(--steel-blue)">NIFTY 50</h2>
+            <div id="nifty-depth" class="h-[500px] overflow-y-auto text-[10px] font-mono"></div>
+        </div>
+
+        <div class="col-span-12 lg:col-span-4 bg-white rounded-lg shadow-sm border border-slate-200 p-4">
+            <h2 class="font-bold mb-4 text-center border-b pb-2" style="color: var(--steel-blue)">BANK NIFTY</h2>
+            <div id="bn-depth" class="h-[500px] overflow-y-auto text-[10px] font-mono"></div>
+        </div>
+
+        <div class="col-span-12 lg:col-span-4 space-y-6">
+            <div class="signal-card p-5 rounded-lg shadow-sm">
+                <h3 class="text-xs font-bold uppercase text-slate-400 mb-3">Live Signal Pulse</h3>
+                <div id="live-pulse" class="text-2xl font-black">SCANNING...</div>
+            </div>
+
+            <div class="bg-white p-5 rounded-lg shadow-sm border border-slate-200">
+                <h3 class="text-xs font-bold uppercase text-slate-400 mb-4">Trade History</h3>
+                <div id="history-list" class="space-y-3"></div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const ws = new WebSocket(`ws://${window.location.host}/ws`);
+        const statusEl = document.getElementById('status');
+
+        ws.onopen = () => statusEl.innerText = 'WS CONNECTED';
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            renderDepth('nifty-depth', data.market["NSE:NIFTY50-INDEX"]);
+            renderDepth('bn-depth', data.market["NSE:NIFTYBANK-INDEX"]);
+            renderHistory(data.history);
+        };
+
+        function renderDepth(id, market) {
+            const container = document.getElementById(id);
+            if (!market.depth.bids.length) return;
+            
+            let html = `<div class="grid grid-cols-2 gap-2 font-bold mb-1 opacity-50"><span>BIDS</span><span class="text-right">ASKS</span></div>`;
+            for(let i=0; i<50; i++) {
+                const b = market.depth.bids[i] || [0,0];
+                const a = market.depth.asks[i] || [0,0];
+                html += `
+                    <div class="grid grid-cols-2 depth-cell py-1">
+                        <span class="text-green-600">${b[0]} (${b[1]})</span>
+                        <span class="text-red-600 text-right">(${a[1]}) ${a[0]}</span>
+                    </div>`;
+            }
+            container.innerHTML = html;
+        }
+
+        function renderHistory(history) {
+            const list = document.getElementById('history-list');
+            list.innerHTML = history.map(t => `
+                <div class="flex justify-between items-center text-sm border-b pb-2">
+                    <div>
+                        <span class="font-bold" style="color: var(--steel-blue)">${t.symbol.split(':')[1]}</span>
+                        <div class="text-[10px] text-slate-400">${t.time}</div>
+                    </div>
+                    <div class="${t.signal.includes('BUY') ? 'text-green-600' : 'text-red-600'} font-bold">
+                        ${t.signal} @ ${t.price}
+                    </div>
+                </div>
+            `).join('');
+        }
+    </script>
+</body>
+</html>
