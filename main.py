@@ -5,7 +5,7 @@ import numpy as np
 from datetime import datetime
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse
-from fyers_apiv3.fyers_tbt import FyersDataSocket
+from fyers_apiv3.FyersWebsocket import data_ws
 
 app = FastAPI()
 
@@ -81,7 +81,7 @@ async def websocket_endpoint(websocket: WebSocket):
 if __name__ == "__main__":
     import uvicorn
     # Fyers TBT setup
-    tbt = FyersDataSocket(access_token=f"{API_KEY}:{ACCESS_TOKEN}", litemode=False)
+    tbt = data_ws.FyersDataSocket(access_token=f"{API_KEY}:{ACCESS_TOKEN}", litemode=False)
     tbt.on_message = on_message
     tbt.subscribe(symbols=SYMBOLS, data_type="depth")
     # Run TBT in a separate thread/task
